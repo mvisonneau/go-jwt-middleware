@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/form3tech-oss/jwt-go"
+	"github.com/gorilla/securecookie"
 )
 
 // A function called whenever an error is encountered
@@ -141,6 +142,32 @@ func FromAuthHeader(r *http.Request) (string, error) {
 func FromParameter(param string) TokenExtractor {
 	return func(r *http.Request) (string, error) {
 		return r.URL.Query().Get(param), nil
+	}
+}
+
+// FromCookie returns a function that extracts the token from the specified
+// key in a HTTP cookie, like "access_token"
+func FromCookie(cookieName string) TokenExtractor {
+	return func(r *http.Request) (string, error) {
+		if cookie, _ := r.Cookie(cookieName); cookie != nil {
+			return cookie.Value, nil
+		}
+		return "", nil
+	}
+}
+
+// FromSecureCookie returns a function that extracts the token from the specified
+// key in a secure HTTP cookie
+func FromSecureCookie(cookieName string, sc *securecookie.SecureCookie) TokenExtractor {
+	return func(r *http.Request) (string, error) {
+		if cookie, _ := r.Cookie(cookieName); cookie != nil {
+			var value string
+			if err := sc.Decode(cookieName, cookie.Value, &value); err != nil {
+				return "", err
+			}
+			return value, nil
+		}
+		return "", nil
 	}
 }
 
